@@ -1,5 +1,7 @@
 # 4K Upscaler
 
+By [ThinkDifferent](https://thinkdifferent.co.il)
+
 **Live demo:** https://upscale.185.158.132.146.sslip.io
 
 A free web app that upscales images to 4K and converts them to SVG. All processing runs in the visitor's browser, so images are never uploaded and the site needs no server.
@@ -73,3 +75,7 @@ Use Git deployment in hPanel: **Websites → your site → Advanced → GIT**. A
 `tools/mac/convert_ncnn.py` converts an ncnn RRDBNet model (`.param` + `.bin`) to the JSON graph and float16 weights the web app loads; `base64 -i x.bin | tr -d '\n' > x.b64.txt` makes the text file.
 
 See `THIRD_PARTY_NOTICES.md` for licences.
+
+---
+
+Made by [ThinkDifferent](https://thinkdifferent.co.il).
