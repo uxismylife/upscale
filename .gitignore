@@ -1,0 +1,13 @@
+.DS_Store
+
+# Mac tool: the Real-ESRGAN binary and model weights are downloaded locally, not committed
+tools/mac/realesrgan-ncnn-vulkan
+tools/mac/models/
+tools/mac/*.zip
+tools/mac/*.jpg
+tools/mac/*.png
+tools/mac/*.mp4
+tools/mac/README_macos.md
+
+# Local test images and outputs
+tests/
