@@ -56,6 +56,21 @@ a { color: inherit; }
 .nav-links { display: flex; gap: 22px; font-size: 14px; color: var(--muted); }
 .nav-links a { text-decoration: none; }
 .nav-links a:hover { color: var(--ink); }
+.nav-right { display: flex; align-items: center; gap: 22px; }
+.theme-toggle {
+  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); transition: background .15s, border-color .15s;
+}
+.theme-toggle:hover { background: var(--surface-2); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-toggle svg { width: 18px; height: 18px; }
+.theme-toggle .i-sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .i-sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .i-moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .i-sun { display: block; }
+  :root:not([data-theme="light"]) .theme-toggle .i-moon { display: none; }
+}
 
 /* Hero */
 .hero { text-align: center; padding-block: 40px 28px; display: grid; justify-items: center; gap: 14px; }
@@ -214,12 +229,19 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .spin { animation-duration: 2.4s; } .dropzone { transition: none; } }
 </style>
+<script>try { const t = localStorage.getItem("upscale-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (_) {}</script>
 </head>
 <body>
 <div class="page">
   <nav class="nav" aria-label="Main">
     <a class="brand" href="#top"><span class="mark" aria-hidden="true">4K</span>Upscale</a>
-    <div class="nav-links"><a href="#how">How it works</a><a href="#faq">FAQ</a></div>
+    <div class="nav-right">
+      <div class="nav-links"><a href="#how">How it works</a><a href="#faq">FAQ</a></div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+    </div>
   </nav>
 
   <section class="hero" id="top">
@@ -1599,6 +1621,23 @@ $("download").onclick = async () => {
     btn.disabled = false;
   }
 };
+
+// Light / dark switch. Follows the system until the visitor picks one; the pick is remembered.
+const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : darkQuery.matches; };
+function syncThemeButton() {
+  const label = isDark() ? "Switch to light mode" : "Switch to dark mode";
+  $("themeToggle").setAttribute("aria-label", label);
+  $("themeToggle").title = label;
+}
+$("themeToggle").onclick = () => {
+  const next = isDark() ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("upscale-theme", next); } catch (_) {}
+  syncThemeButton();
+};
+darkQuery.addEventListener("change", syncThemeButton);
+syncThemeButton();
 
 /* ---------------- Boot ---------------- */
 syncEngine();
