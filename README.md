@@ -11,7 +11,9 @@ A free web app that upscales images to 4K and converts them to SVG. All processi
 
 | Path | What it is |
 |---|---|
-| `index.html` | The whole app (UI, engines, worker code) |
+| `src/app.html` | App source (UI, engines, worker code) in claude.ai artifact format |
+| `index.html` | Built from `src/app.html` by `python3 tools/build.py`; this is what the site serves |
+| `tools/build.py` | Wraps `src/app.html` in a full HTML document |
 | `model/digital-art-4x.json` | Network graph for the AI model |
 | `model/digital-art-4x.b64.txt` | Model weights, float16, base64 (8.9 MB binary) |
 | `vendor/vtracer.wasm` | VTracer engine from [vtracer-wasm](https://github.com/jsscheller/vtracer-wasm) 0.1.0 |

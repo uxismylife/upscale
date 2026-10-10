@@ -1,0 +1,1597 @@
+<title>4K Upscaler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: clean, bright tool page. Hero with one big upload card, then a result card beside a sticky settings card,
+   then how-it-works and FAQ. One strong blue accent, soft shadows, generous radius. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --ink: #0f1217;
+  --muted: #5d6675;
+  --line: #e4e7ec;
+  --accent: #2f5bff;
+  --accent-ink: #ffffff;
+  --accent-soft: #edf1ff;
+  --warn: #a85700;
+  --stage: #eef0f3;
+  --stage-2: #e3e6ea;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 10px 30px rgba(16, 24, 40, .07);
+  --sans: "Geist", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0d11; --surface: #13161c; --surface-2: #1a1e26; --ink: #eceff4; --muted: #98a1b0; --line: #262b35;
+    --accent: #6f8fff; --accent-ink: #0b0d11; --accent-soft: #1a2240; --warn: #f2b35a;
+    --stage: #0f1217; --stage-2: #171b22; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0d11; --surface: #13161c; --surface-2: #1a1e26; --ink: #eceff4; --muted: #98a1b0; --line: #262b35;
+  --accent: #6f8fff; --accent-ink: #0b0d11; --accent-soft: #1a2240; --warn: #f2b35a;
+  --stage: #0f1217; --stage-2: #171b22; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+.page { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 0 48px; }
+
+/* Nav */
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -.01em; text-decoration: none; }
+.mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font: 700 12px/1 var(--mono); letter-spacing: .02em; }
+.nav-links { display: flex; gap: 22px; font-size: 14px; color: var(--muted); }
+.nav-links a { text-decoration: none; }
+.nav-links a:hover { color: var(--ink); }
+
+/* Hero */
+.hero { text-align: center; padding-block: 40px 28px; display: grid; justify-items: center; gap: 14px; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); padding: 7px 12px; border-radius: 999px; }
+h1 { margin: 6px 0 0; font-weight: 700; font-size: clamp(36px, 6vw, 64px); line-height: 1.02; letter-spacing: -.035em; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.lede { margin: 0; max-width: 56ch; color: var(--muted); font-size: 17px; }
+.dropzone {
+  margin-top: 14px; width: min(720px, 100%); display: grid; justify-items: center; gap: 8px;
+  padding: 34px 20px; border-radius: 20px; border: 2px dashed color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: var(--surface); box-shadow: var(--shadow); color: var(--ink); font: inherit; cursor: pointer;
+  transition: border-color .15s, transform .15s, background .15s;
+}
+.dropzone:hover, body.dragging .dropzone { border-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface)); }
+.dropzone:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 3px; }
+.dz-icon { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.dz-title { font-weight: 600; font-size: 18px; }
+.dz-title u { color: var(--accent); text-decoration: none; }
+.dz-sub { color: var(--muted); font-size: 14px; }
+.trust { list-style: none; padding: 0; margin: 4px 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; color: var(--muted); font-size: 13.5px; }
+.trust li { display: inline-flex; align-items: center; gap: 7px; }
+.trust li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+/* Workspace */
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; scroll-margin-top: 16px; }
+@media (max-width: 900px) { .workspace { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); min-width: 0; }
+.result { padding: 14px; display: grid; gap: 12px; }
+.filebar { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 2px 2px 0; }
+.thumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; background: var(--stage); flex: none; }
+.file-meta { min-width: 0; flex: 1; display: grid; gap: 1px; }
+.file-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-dims { font: 12.5px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.badge { display: inline-block; font: 500 10.5px/1 var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 4px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); margin-left: 8px; vertical-align: 2px; }
+
+.stage {
+  position: relative; height: 460px; border-radius: 14px; overflow: hidden; touch-action: none; user-select: none;
+  background-color: var(--stage);
+  background-image: conic-gradient(var(--stage-2) 25%, transparent 0 50%, var(--stage-2) 0 75%, transparent 0);
+  background-size: 18px 18px; cursor: ew-resize;
+}
+.stage.zoomed { cursor: grab; }
+.stage.zoomed.panning { cursor: grabbing; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.split { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .18); cursor: ew-resize; outline: none; }
+.split .knob {
+  position: absolute; top: 50%; left: 50%; width: 38px; height: 38px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: #fff; box-shadow: 0 4px 14px rgba(16, 24, 40, .25);
+  display: grid; place-items: center; color: #0f1217; font: 600 14px/1 var(--sans);
+}
+.split:focus-visible .knob { box-shadow: 0 0 0 3px var(--accent), 0 4px 14px rgba(16, 24, 40, .25); }
+.tag { position: absolute; top: 12px; padding: 5px 10px; border-radius: 999px; pointer-events: none; background: rgba(255, 255, 255, .92); color: #0f1217; font: 600 12px/1.2 var(--sans); box-shadow: 0 2px 8px rgba(16, 24, 40, .12); }
+.tag-l { left: 12px; } .tag-r { right: 12px; background: var(--accent); color: #fff; }
+.busy {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-radius: 999px;
+  background: rgba(255, 255, 255, .95); color: #0f1217; font: 500 13.5px/1 var(--sans); pointer-events: none; white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(16, 24, 40, .18);
+}
+.spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #d5dbff; border-top-color: #2f5bff; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.drop {
+  position: absolute; inset: 10px; border: 2px dashed var(--accent); border-radius: 12px; background: color-mix(in srgb, var(--surface) 82%, transparent);
+  display: grid; place-items: center; font-weight: 600; font-size: 20px; color: var(--ink); pointer-events: none;
+}
+.stagebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.readout { font: 12.5px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.readout strong { color: var(--ink); font-weight: 500; }
+.hint { font-size: 13px; color: var(--muted); padding-inline: 2px; }
+
+/* Segmented controls */
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 11px; background: var(--surface-2); }
+.seg button { border: 0; background: transparent; color: var(--muted); font: 500 13.5px/1 var(--sans); padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg button:disabled { opacity: .45; cursor: not-allowed; }
+.seg-wide { display: flex; }
+.seg-wide button { flex: 1; padding: 10px 8px; }
+
+/* Settings card */
+.panel { display: grid; position: sticky; top: 16px; }
+@media (max-width: 900px) { .panel { position: static; } }
+.block { padding: 18px 20px; display: grid; gap: 12px; }
+.block + .block { border-top: 1px solid var(--line); }
+.label { font-weight: 600; font-size: 14px; }
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: 500 14px/1 var(--sans); padding: 11px 14px; border-radius: 11px; cursor: pointer; text-align: center;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-ghost { padding: 9px 14px; flex: none; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 15.5px; padding: 15px; border-radius: 13px; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+.btn-primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
+.btn:disabled { opacity: .55; cursor: progress; }
+
+.sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.size { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; position: relative; }
+.size:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.size:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.size:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.size input { position: absolute; opacity: 0; pointer-events: none; }
+.size-name { font-weight: 600; font-size: 13.5px; }
+.size-px { font: 11.5px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.size-wide { grid-column: 1 / -1; }
+
+.slider { display: grid; gap: 6px; }
+.slider-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slider-head label { font-weight: 500; font-size: 14px; }
+.slider-head output { font: 12.5px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.slider small { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+.svg-opts { display: grid; gap: 12px; }
+
+.note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 0; }
+.note.warn { color: var(--warn); }
+.status { min-height: 1.4em; font-size: 13px; color: var(--muted); text-align: center; }
+
+/* How it works + FAQ */
+.section { padding-block: 72px 0; display: grid; gap: 24px; }
+.section h2 { margin: 0; font-size: clamp(26px, 3.4vw, 36px); letter-spacing: -.025em; text-align: center; text-wrap: balance; }
+.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; counter-reset: step; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; display: grid; gap: 6px; counter-increment: step; }
+.steps li::before { content: counter(step); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font: 600 14px/1 var(--mono); margin-bottom: 6px; }
+.steps h3 { margin: 0; font-size: 16px; }
+.steps p { margin: 0; color: var(--muted); font-size: 14px; }
+.faq-list { max-width: 760px; width: 100%; margin: 0 auto; display: grid; gap: 10px; }
+.faq-list details { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 18px; }
+.faq-list summary { cursor: pointer; font-weight: 600; padding-block: 12px; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+.faq-list summary::-webkit-details-marker { display: none; }
+.faq-list summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 20px; line-height: 1; }
+.faq-list details[open] summary::after { content: "–"; }
+.faq-list p { margin: 0 0 14px; color: var(--muted); font-size: 14.5px; }
+.foot { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; color: var(--muted); font-size: 13px; }
+
+/* Save fallback */
+.sheet { position: fixed; inset: 0; background: rgba(11, 13, 17, .6); display: grid; place-items: center; padding: 16px; z-index: 10; }
+.sheet-card { background: var(--surface); color: var(--ink); border-radius: 18px; max-width: min(900px, 100%); max-height: 100%; overflow: auto; padding: 20px; display: grid; gap: 12px; box-shadow: var(--shadow); }
+.sheet-card img { width: 100%; height: auto; border-radius: 10px; }
+.sheet-card p { margin: 0; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.sheet-head h2 { font-size: 20px; margin: 0; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 560px) {
+  .nav-links { display: none; }
+  .hero { padding-block: 20px 18px; }
+  .stage { height: 340px; }
+  .block { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .spin { animation-duration: 2.4s; } .dropzone { transition: none; } }
+</style>
+
+<div class="page">
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="#top"><span class="mark" aria-hidden="true">4K</span>Upscale</a>
+    <div class="nav-links"><a href="#how">How it works</a><a href="#faq">FAQ</a></div>
+  </nav>
+
+  <section class="hero" id="top">
+    <span class="eyebrow">Free · No sign-up · Private</span>
+    <h1>Make any image <span>4K</span>. Free.</h1>
+    <p class="lede">AI upscaling and SVG conversion that runs right in your browser. Your images never leave your device.</p>
+    <button class="dropzone" id="pick" type="button">
+      <span class="dz-icon" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      </span>
+      <span class="dz-title">Drop an image or <u>browse</u></span>
+      <span class="dz-sub">PNG, JPG or WebP · or paste with ⌘V / Ctrl+V</span>
+    </button>
+    <input type="file" id="fileInput" accept="image/*" class="visually-hidden" tabindex="-1">
+    <ul class="trust">
+      <li>Up to 8K output</li>
+      <li>AI runs on your device</li>
+      <li>Download PNG, JPG, WebP or SVG</li>
+    </ul>
+  </section>
+
+  <main class="workspace" id="workspace">
+    <section class="card result" aria-label="Result">
+      <div class="filebar">
+        <canvas class="thumb" id="thumb" width="88" height="88"></canvas>
+        <div class="file-meta">
+          <div class="file-name" id="fileName">Harbor Ridge<span class="badge">Sample</span></div>
+          <div class="file-dims" id="fileDims">640 × 360</div>
+        </div>
+        <button class="btn btn-ghost" id="pick2" type="button">Replace image</button>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="view" aria-label="Before and after comparison"></canvas>
+        <div class="split" id="split" role="slider" tabindex="0" aria-label="Comparison divider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"><span class="knob">⇆</span></div>
+        <span class="tag tag-l">Before</span>
+        <span class="tag tag-r" id="tagR">AI</span>
+        <div class="busy" id="busy" hidden><span class="spin"></span><span id="busyText">Upscaling…</span></div>
+        <div class="drop" id="drop" hidden>Drop image to upscale</div>
+      </div>
+      <div class="stagebar">
+        <div class="seg" role="group" aria-label="Zoom">
+          <button type="button" id="zFit" aria-pressed="true">Fit</button>
+          <button type="button" id="z1" aria-pressed="false">100%</button>
+          <button type="button" id="z2" aria-pressed="false">200%</button>
+        </div>
+        <div class="readout" id="readout">Loading…</div>
+      </div>
+      <div class="hint" id="hint">Drag across the image to compare. Zoom to 100% to judge real 4K detail, then drag to pan.</div>
+    </section>
+
+    <aside class="card panel" aria-label="Settings">
+      <div class="block">
+        <span class="label">Engine</span>
+        <div class="seg seg-wide" role="group" aria-label="Engine">
+          <button type="button" data-engine="ai" aria-pressed="true">AI · best quality</button>
+          <button type="button" data-engine="classic" aria-pressed="false">Classic · instant</button>
+        </div>
+        <p class="note" id="engineNote"></p>
+      </div>
+
+      <div class="block">
+        <span class="label">Output size</span>
+        <div class="sizes" id="sizes">
+          <label class="size"><input type="radio" name="size" id="sz-uhd" value="uhd" checked><span class="size-name">4K UHD</span><span class="size-px" data-px="uhd"></span></label>
+          <label class="size"><input type="radio" name="size" id="sz-dci" value="dci"><span class="size-name">4K DCI</span><span class="size-px" data-px="dci"></span></label>
+          <label class="size size-wide"><input type="radio" name="size" id="sz-frame" value="frame"><span class="size-name">4K frame, crop to fill</span><span class="size-px" data-px="frame"></span></label>
+          <label class="size"><input type="radio" name="size" id="sz-x2" value="x2"><span class="size-name">2×</span><span class="size-px" data-px="x2"></span></label>
+          <label class="size"><input type="radio" name="size" id="sz-x4" value="x4"><span class="size-name">4×</span><span class="size-px" data-px="x4"></span></label>
+        </div>
+        <p class="note" id="sizeNote" hidden></p>
+      </div>
+
+      <div class="block" id="enhanceBlock">
+        <span class="label">Enhance</span>
+        <div class="slider">
+          <div class="slider-head"><label for="denoise">Clean up noise</label><output id="denoiseOut" for="denoise">20</output></div>
+          <input type="range" id="denoise" min="0" max="100" value="20">
+          <small>Smooths grain and JPEG blocks before enlarging.</small>
+        </div>
+        <div class="slider">
+          <div class="slider-head"><label for="sharpen">Sharpen edges</label><output id="sharpenOut" for="sharpen">80</output></div>
+          <input type="range" id="sharpen" min="0" max="200" value="80">
+          <small>Restores crisp edges lost when pixels are stretched.</small>
+        </div>
+        <div class="slider">
+          <div class="slider-head"><label for="detail">Local contrast</label><output id="detailOut" for="detail">25</output></div>
+          <input type="range" id="detail" min="0" max="100" value="25">
+          <small>Adds depth to textures. Keep it low on faces.</small>
+        </div>
+        <button class="btn" id="reset" type="button">Reset to defaults</button>
+      </div>
+
+      <div class="block">
+        <span class="label">File type</span>
+        <div class="seg seg-wide" role="group" aria-label="File type">
+          <button type="button" data-fmt="png" aria-pressed="true">PNG</button>
+          <button type="button" data-fmt="jpg" aria-pressed="false">JPG</button>
+          <button type="button" data-fmt="webp" aria-pressed="false">WebP</button>
+          <button type="button" data-fmt="svg" aria-pressed="false">SVG</button>
+        </div>
+        <div class="svg-opts" id="svgRow" hidden>
+          <div class="seg seg-wide" role="group" aria-label="SVG style">
+            <button type="button" data-svgstyle="smooth" aria-pressed="true">Smooth</button>
+            <button type="button" data-svgstyle="detailed" aria-pressed="false">Detailed</button>
+            <button type="button" data-svgstyle="flat" aria-pressed="false">Flat cartoon</button>
+          </div>
+          <div class="slider">
+            <div class="slider-head"><label for="colors">Colours</label><output id="colorsOut" for="colors">64</output></div>
+            <input type="range" id="colors" min="2" max="64" value="64">
+            <small id="svgNote"></small>
+          </div>
+        </div>
+        <div class="slider" id="qualityRow" hidden>
+          <div class="slider-head"><label for="quality">Quality</label><output id="qualityOut" for="quality">92</output></div>
+          <input type="range" id="quality" min="60" max="100" value="92">
+        </div>
+        <button class="btn btn-primary" id="download" type="button">Download</button>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+        <p class="note" id="footNote"></p>
+      </div>
+    </aside>
+  </main>
+
+  <section class="section" id="how" aria-labelledby="howTitle">
+    <h2 id="howTitle">How it works</h2>
+    <ol class="steps">
+      <li><h3>Drop your image</h3><p>Any PNG, JPG or WebP. Photos, illustrations, screenshots and 3D renders all work.</p></li>
+      <li><h3>AI redraws it at 4K</h3><p>A Real-ESRGAN model runs on your own graphics chip, cleaning up blur and compression as it enlarges.</p></li>
+      <li><h3>Compare and download</h3><p>Drag the slider to check the detail, then save as PNG, JPG, WebP or a scalable SVG.</p></li>
+    </ol>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faqTitle">
+    <h2 id="faqTitle">Questions</h2>
+    <div class="faq-list">
+      <details><summary>Is it really free?</summary><p>Yes. There's no account, no watermark and no limit. All the processing happens on your device, so it costs nothing to run.</p></details>
+      <details><summary>Are my images uploaded anywhere?</summary><p>No. The image stays in your browser from start to finish. Only the app itself is downloaded.</p></details>
+      <details><summary>Why is the first upscale slower?</summary><p>The first time, your browser downloads the 9 MB AI model. After that it's cached, and each image takes about 5–60 seconds depending on your computer.</p></details>
+      <details><summary>What's the difference between AI and Classic?</summary><p>AI redraws edges and removes blur and compression for the sharpest result. Classic is an instant high-quality resize with sharpening, good for images that are already clean.</p></details>
+      <details><summary>What is SVG output?</summary><p>SVG redraws your image as vector shapes that stay sharp at any size. Smooth keeps soft shading, Detailed uses only sharp shapes for editing in design apps, and Flat cartoon gives a clean sticker look.</p></details>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Upscale: free 4K upscaling and SVG conversion in your browser.</span>
+    <span>Images are processed on your device.</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+/* ---------------- Worker: denoise, Lanczos-3 resize, luminance sharpening ---------------- */
+function workerMain() {
+  const lanczos = (x) => {
+    if (x === 0) return 1;
+    if (x <= -3 || x >= 3) return 0;
+    const px = Math.PI * x;
+    return (3 * Math.sin(px) * Math.sin(px / 3)) / (px * px);
+  };
+
+  // Resampling taps for one axis. off/span describe the source window (crop) in source pixels.
+  function plan(srcLen, dstLen, off, span) {
+    const ratio = span / dstLen;
+    const fs = ratio > 1 ? 1 / ratio : 1;
+    const support = 3 / fs;
+    const starts = new Int32Array(dstLen + 1);
+    const idx = [], wts = [];
+    for (let x = 0; x < dstLen; x++) {
+      const c = off + (x + 0.5) * ratio - 0.5;
+      const lo = Math.ceil(c - support), hi = Math.floor(c + support);
+      starts[x] = idx.length;
+      const s0 = wts.length;
+      let sum = 0;
+      for (let j = lo; j <= hi; j++) {
+        const w = lanczos((j - c) * fs);
+        if (w === 0) continue;
+        idx.push(j < 0 ? 0 : j >= srcLen ? srcLen - 1 : j);
+        wts.push(w);
+        sum += w;
+      }
+      for (let k = s0; k < wts.length; k++) wts[k] /= sum;
+    }
+    starts[dstLen] = idx.length;
+    return { starts, idx: Int32Array.from(idx), w: Float32Array.from(wts) };
+  }
+
+  // Edge-preserving 5x5 bilateral filter on RGB.
+  function denoise(d, w, h, strength) {
+    const out = new Uint8ClampedArray(d.length);
+    const sr = 8 + strength * 34;
+    const lut = new Float32Array(766);
+    for (let i = 0; i < 766; i++) { const v = i / 1.7; lut[i] = Math.exp(-(v * v) / (2 * sr * sr)); }
+    const sp = [];
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) sp.push(Math.exp(-(dx * dx + dy * dy) / (2 * 1.4 * 1.4)));
+    const mix = Math.min(1, 0.35 + strength);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        const r0 = d[i], g0 = d[i + 1], b0 = d[i + 2];
+        let sum = 0, ar = 0, ag = 0, ab = 0, k = 0;
+        for (let dy = -2; dy <= 2; dy++) {
+          const yy = y + dy < 0 ? 0 : y + dy >= h ? h - 1 : y + dy;
+          for (let dx = -2; dx <= 2; dx++) {
+            const xx = x + dx < 0 ? 0 : x + dx >= w ? w - 1 : x + dx;
+            const j = (yy * w + xx) * 4;
+            const r = d[j], g = d[j + 1], b = d[j + 2];
+            const dist = Math.abs(r - r0) + Math.abs(g - g0) + Math.abs(b - b0);
+            const wt = sp[k++] * lut[dist];
+            sum += wt; ar += r * wt; ag += g * wt; ab += b * wt;
+          }
+        }
+        out[i] = r0 + (ar / sum - r0) * mix;
+        out[i + 1] = g0 + (ag / sum - g0) * mix;
+        out[i + 2] = b0 + (ab / sum - b0) * mix;
+        out[i + 3] = d[i + 3];
+      }
+    }
+    return out;
+  }
+
+  // Separable Lanczos-3 with premultiplied alpha. Returns 8-bit RGBA and a luminance plane.
+  function resize(src, sw, sh, crop, dw, dh) {
+    const px = plan(sw, dw, crop.x, crop.w);
+    const py = plan(sh, dh, crop.y, crop.h);
+    const n = sw * sh;
+    const pre = new Float32Array(n * 4);
+    for (let i = 0; i < n * 4; i += 4) {
+      const a = src[i + 3] / 255;
+      pre[i] = src[i] * a; pre[i + 1] = src[i + 1] * a; pre[i + 2] = src[i + 2] * a; pre[i + 3] = src[i + 3];
+    }
+    // Only rows the vertical pass reads.
+    let rMin = sh, rMax = 0;
+    for (let k = 0; k < py.idx.length; k++) { const r = py.idx[k]; if (r < rMin) rMin = r; if (r > rMax) rMax = r; }
+    const tmp = new Float32Array(dw * sh * 4);
+    for (let y = rMin; y <= rMax; y++) {
+      const srow = y * sw * 4, trow = y * dw * 4;
+      for (let x = 0; x < dw; x++) {
+        let r = 0, g = 0, b = 0, a = 0;
+        for (let k = px.starts[x], e = px.starts[x + 1]; k < e; k++) {
+          const j = srow + px.idx[k] * 4, wt = px.w[k];
+          r += pre[j] * wt; g += pre[j + 1] * wt; b += pre[j + 2] * wt; a += pre[j + 3] * wt;
+        }
+        const t = trow + x * 4;
+        tmp[t] = r; tmp[t + 1] = g; tmp[t + 2] = b; tmp[t + 3] = a;
+      }
+    }
+    const out = new Uint8ClampedArray(dw * dh * 4);
+    const L = new Float32Array(dw * dh);
+    const acc = new Float32Array(dw * 4);
+    for (let y = 0; y < dh; y++) {
+      acc.fill(0);
+      for (let k = py.starts[y], e = py.starts[y + 1]; k < e; k++) {
+        const trow = py.idx[k] * dw * 4, wt = py.w[k];
+        for (let x = 0; x < dw * 4; x++) acc[x] += tmp[trow + x] * wt;
+      }
+      const orow = y * dw * 4;
+      for (let x = 0; x < dw; x++) {
+        const t = x * 4;
+        const a = acc[t + 3];
+        // premultiplied → straight colour
+        const inv = a > 0.5 ? 255 / Math.min(255, a) : 0;
+        let r = acc[t] * inv, g = acc[t + 1] * inv, b = acc[t + 2] * inv;
+        r = r < 0 ? 0 : r > 255 ? 255 : r;
+        g = g < 0 ? 0 : g > 255 ? 255 : g;
+        b = b < 0 ? 0 : b > 255 ? 255 : b;
+        const o = orow + t;
+        out[o] = r; out[o + 1] = g; out[o + 2] = b; out[o + 3] = a;
+        L[y * dw + x] = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      }
+    }
+    return { out, L };
+  }
+
+  function boxes(sigma) {
+    const n = 3;
+    const wIdeal = Math.sqrt((12 * sigma * sigma) / n + 1);
+    let wl = Math.floor(wIdeal); if (wl % 2 === 0) wl--;
+    const wu = wl + 2;
+    const m = Math.round((12 * sigma * sigma - n * wl * wl - 4 * n * wl - 3 * n) / (-4 * wl - 4));
+    const r = [];
+    for (let i = 0; i < n; i++) r.push(((i < m ? wl : wu) - 1) / 2);
+    return r;
+  }
+  function blurH(src, dst, w, h, r) {
+    if (r === 0) { dst.set(src); return; }
+    const inv = 1 / (r + r + 1);
+    for (let y = 0; y < h; y++) {
+      const row = y * w;
+      let acc = 0;
+      for (let k = -r; k <= r; k++) acc += src[row + (k < 0 ? 0 : k >= w ? w - 1 : k)];
+      for (let x = 0; x < w; x++) {
+        dst[row + x] = acc * inv;
+        const add = x + r + 1 >= w ? w - 1 : x + r + 1;
+        const rem = x - r < 0 ? 0 : x - r;
+        acc += src[row + add] - src[row + rem];
+      }
+    }
+  }
+  function blurV(src, dst, w, h, r) {
+    if (r === 0) { dst.set(src); return; }
+    const inv = 1 / (r + r + 1);
+    const acc = new Float32Array(w);
+    for (let k = -r; k <= r; k++) {
+      const row = (k < 0 ? 0 : k >= h ? h - 1 : k) * w;
+      for (let x = 0; x < w; x++) acc[x] += src[row + x];
+    }
+    for (let y = 0; y < h; y++) {
+      const row = y * w;
+      const add = (y + r + 1 >= h ? h - 1 : y + r + 1) * w;
+      const rem = (y - r < 0 ? 0 : y - r) * w;
+      for (let x = 0; x < w; x++) {
+        dst[row + x] = acc[x] * inv;
+        acc[x] += src[add + x] - src[rem + x];
+      }
+    }
+  }
+  function gauss(src, dst, tmp, w, h, sigma) {
+    const b = boxes(sigma);
+    blurH(src, tmp, w, h, b[0]); blurV(tmp, dst, w, h, b[0]);
+    blurH(dst, tmp, w, h, b[1]); blurV(tmp, dst, w, h, b[1]);
+    blurH(dst, tmp, w, h, b[2]); blurV(tmp, dst, w, h, b[2]);
+  }
+
+  // Unsharp mask on luminance (no colour fringes) plus a wide, gentle local-contrast pass.
+  function enhance(out, L, w, h, sharpen, detail, scale) {
+    if (sharpen <= 0 && detail <= 0) return;
+    const n = w * h;
+    const B = new Float32Array(n), T = new Float32Array(n), D = new Float32Array(n);
+    if (sharpen > 0) {
+      gauss(L, B, T, w, h, Math.max(0.7, 0.55 * scale));
+      const th = 2;
+      for (let i = 0; i < n; i++) {
+        let d = L[i] - B[i];
+        const ad = d < 0 ? -d : d;
+        if (ad < th) d *= ad / th;
+        D[i] = d * sharpen;
+      }
+    }
+    if (detail > 0) {
+      gauss(L, B, T, w, h, Math.max(6, 5 * scale));
+      for (let i = 0; i < n; i++) D[i] += (L[i] - B[i]) * detail;
+    }
+    for (let i = 0; i < n; i++) {
+      let d = D[i];
+      if (d > 60) d = 60; else if (d < -60) d = -60;
+      const j = i * 4;
+      out[j] += d; out[j + 1] += d; out[j + 2] += d;
+    }
+  }
+
+  self.onmessage = (e) => {
+    const { id, src, sw, sh, crop, dw, dh, denoise: dn, sharpen, detail } = e.data;
+    const t0 = performance.now();
+    try {
+      let pixels = src;
+      if (dn > 0) { self.postMessage({ id, stage: "Cleaning up noise…" }); pixels = denoise(src, sw, sh, dn); }
+      self.postMessage({ id, stage: "Enlarging to " + dw + " × " + dh + "…" });
+      const { out, L } = resize(pixels, sw, sh, crop, dw, dh);
+      if (sharpen > 0 || detail > 0) { self.postMessage({ id, stage: "Sharpening…" }); enhance(out, L, dw, dh, sharpen, detail, dw / crop.w); }
+      self.postMessage({ id, done: true, buf: out.buffer, dw, dh, ms: performance.now() - t0 }, [out.buffer]);
+    } catch (err) {
+      self.postMessage({ id, error: String(err && err.message || err) });
+    }
+  };
+}
+
+/* ---------------- State ---------------- */
+const MAX_SRC = 8192, MAX_OUT = 8192;
+const srcCanvas = document.createElement("canvas");
+const resultCanvas = document.createElement("canvas");
+let srcData = null;
+let srcName = "harbor-ridge", isSample = true;
+let out = null; // { dw, dh, crop } of what resultCanvas holds
+let srcHasAlpha = false;
+const settings = { engine: "ai", size: "uhd", denoise: 20, sharpen: 80, detail: 25, format: "png", quality: 92, svgStyle: "smooth", colors: 64 };
+const DEFAULTS = { denoise: 20, sharpen: 80, detail: 25 };
+try {
+  const saved = JSON.parse(localStorage.getItem("upscaler4k4") || "null");
+  if (saved && typeof saved === "object") for (const k of ["engine", "size", "denoise", "sharpen", "detail", "format", "quality", "svgStyle", "colors"]) if (k in saved) settings[k] = saved[k];
+} catch (_) {}
+const persist = () => { try { localStorage.setItem("upscaler4k4", JSON.stringify(settings)); } catch (_) {} };
+
+function targetFor(sw, sh, size) {
+  const crop = { x: 0, y: 0, w: sw, h: sh };
+  let dw, dh, capped = false;
+  const long = Math.max(sw, sh);
+  if (size === "uhd" || size === "dci") {
+    const k = (size === "uhd" ? 3840 : 4096) / long;
+    dw = Math.round(sw * k); dh = Math.round(sh * k);
+  } else if (size === "frame") {
+    const land = sw >= sh;
+    dw = land ? 3840 : 2160; dh = land ? 2160 : 3840;
+    const ta = dw / dh, sa = sw / sh;
+    if (sa > ta) { crop.w = sh * ta; crop.x = (sw - crop.w) / 2; }
+    else { crop.h = sw / ta; crop.y = (sh - crop.h) / 2; }
+  } else {
+    let k = size === "x2" ? 2 : 4;
+    if (long * k > MAX_OUT) { k = MAX_OUT / long; capped = true; }
+    dw = Math.round(sw * k); dh = Math.round(sh * k);
+  }
+  return { dw: Math.max(1, dw), dh: Math.max(1, dh), crop, capped };
+}
+
+/* ---------------- Worker plumbing ---------------- */
+let worker = null;
+try {
+  const url = URL.createObjectURL(new Blob(["(" + workerMain.toString() + ")()"], { type: "text/javascript" }));
+  worker = new Worker(url);
+} catch (err) {
+  console.error(err);
+}
+let reqSeq = 0;
+const waiters = new Map();
+if (worker) {
+  worker.onmessage = (e) => {
+    const m = e.data, w = waiters.get(m.id);
+    if (!w) return;
+    if (m.stage) { if (w.onStage) w.onStage(m.stage); return; }
+    waiters.delete(m.id);
+    if (m.error) w.reject(new Error(m.error)); else w.resolve(m);
+  };
+  worker.onerror = (e) => {
+    console.error(e);
+    for (const w of waiters.values()) w.reject(new Error("the image may be too large for this device's memory"));
+    waiters.clear();
+  };
+}
+function workerJob(params, onStage) {
+  return new Promise((resolve, reject) => {
+    if (!worker) { reject(new Error("this browser blocks Web Workers")); return; }
+    const id = ++reqSeq;
+    waiters.set(id, { resolve, reject, onStage });
+    worker.postMessage({ id, denoise: 0, sharpen: 0, detail: 0, ...params });
+  });
+}
+// Plain Lanczos-3 resize of an RGBA image {data, w, h}, optionally from a crop window.
+function resizeRGBA(img, dw, dh, crop) {
+  return workerJob({ src: img.data, sw: img.w, sh: img.h, crop: crop || { x: 0, y: 0, w: img.w, h: img.h }, dw, dh })
+    .then((m) => ({ data: new Uint8ClampedArray(m.buf), w: m.dw, h: m.dh }));
+}
+
+/* ---------------- AI engine: RRDBNet ×4 (digital-art weights) on the GPU via TensorFlow.js ---------------- */
+const TFJS = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js";
+const TFJS_WEBGPU = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu@4.22.0/dist/tf-backend-webgpu.min.js";
+const AI = { promise: null, model: null, backend: "", failed: false, reason: "" };
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = resolve;
+    s.onerror = () => reject(new Error("couldn't load a required library"));
+    document.head.appendChild(s);
+  });
+}
+function halfTable() {
+  const t = new Float32Array(65536);
+  for (let h = 0; h < 65536; h++) {
+    const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, f = h & 1023;
+    t[h] = e === 0 ? s * f * 2 ** -24 : e === 31 ? (f ? NaN : s * Infinity) : s * (1 + f / 1024) * 2 ** (e - 15);
+  }
+  return t;
+}
+function loadAI(stage) {
+  if (AI.promise) return AI.promise;
+  AI.promise = (async () => {
+    stage("Loading AI engine…");
+    if (!window.tf) await loadScript(TFJS);
+    let backend = "";
+    if (navigator.gpu) {
+      try { await loadScript(TFJS_WEBGPU); if (await tf.setBackend("webgpu")) backend = "webgpu"; } catch (_) {}
+    }
+    if (!backend) { try { if (await tf.setBackend("webgl")) backend = "webgl"; } catch (_) {} }
+    if (!backend) throw new Error("this browser doesn't give web pages access to the graphics chip");
+    await tf.ready();
+    stage("Downloading AI model (9 MB)…");
+    const get = (p, kind) => fetch(p).then((r) => { if (!r.ok) throw new Error("the AI model file is missing"); return r[kind](); });
+    const [spec, b64] = await Promise.all([get("model/digital-art-4x.json", "json"), get("model/digital-art-4x.b64.txt", "text")]);
+    const bin = atob(b64.trim()), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const half = new Uint16Array(bytes.buffer), table = halfTable(), wts = new Float32Array(half.length);
+    for (let i = 0; i < half.length; i++) wts[i] = table[half[i]];
+    const uses = {};
+    for (const op of spec.ops) for (const n of [].concat(op.in || [])) uses[n] = (uses[n] || 0) + 1;
+    for (const op of spec.ops) if (op.op === "conv") {
+      op.filter = tf.tensor4d(wts.subarray(op.w, op.w + op.k * op.k * op.ic * op.oc), [op.k, op.k, op.ic, op.oc]);
+      op.bias = tf.tensor1d(wts.subarray(op.b, op.b + op.oc));
+    }
+    AI.model = { ops: spec.ops, uses, scale: spec.scale };
+    AI.backend = backend;
+    stage("Preparing AI engine…");
+    const warm = runGraph(tf.zeros([1, 24, 24, 3]));
+    await warm.data(); warm.dispose();
+    return AI.model;
+  })();
+  AI.promise.catch((err) => { AI.failed = true; AI.reason = err.message; });
+  return AI.promise;
+}
+
+// Executes the converted ncnn graph, freeing each intermediate as soon as its last reader has run.
+function runGraph(input) {
+  const { ops, uses } = AI.model;
+  const env = new Map(), refs = new Map();
+  const put = (name, t) => { env.set(name, t); refs.set(t, (refs.get(t) || 0) + (uses[name] || 0)); };
+  const drop = (name) => {
+    const t = env.get(name); env.delete(name);
+    const c = refs.get(t) - 1;
+    if (c <= 0) { refs.delete(t); t.dispose(); } else refs.set(t, c);
+  };
+  let last = null;
+  for (const op of ops) {
+    let r;
+    if (op.op === "input") { put(op.out, input); continue; }
+    if (op.op === "split") { const t = env.get(op.in); for (const o of op.out) put(o, t); drop(op.in); continue; }
+    if (op.op === "conv") {
+      r = tf.fused.conv2d({ x: env.get(op.in), filter: op.filter, bias: op.bias, strides: 1, pad: "same",
+        activation: op.lrelu != null ? "leakyrelu" : "linear", leakyreluAlpha: op.lrelu != null ? op.lrelu : 0.2 });
+    } else if (op.op === "concat") {
+      r = tf.concat(op.in.map((n) => env.get(n)), 3);
+    } else if (op.op === "add") {
+      const [a, b] = op.in.map((n) => env.get(n)), [c0, c1] = op.coeffs;
+      r = tf.tidy(() => tf.add(c0 === 1 ? a : tf.mul(a, c0), c1 === 1 ? b : tf.mul(b, c1)));
+    } else if (op.op === "up") {
+      const x = env.get(op.in);
+      r = tf.image.resizeNearestNeighbor(x, [x.shape[1] * op.scale, x.shape[2] * op.scale]);
+    }
+    for (const n of [].concat(op.in)) drop(n);
+    put(op.out, r); last = op.out;
+  }
+  return env.get(last);
+}
+
+// ×4 AI upscale of an RGBA image, in overlapping tiles so GPU memory stays small.
+async function aiUpscale(img, gen, onProgress) {
+  const S = AI.model.scale, TILE = 128, PAD = 12;
+  const { w, h, data } = img, W = w * S, H = h * S;
+  const out = new Uint8ClampedArray(W * H * 4);
+  const nx = Math.ceil(w / TILE), ny = Math.ceil(h / TILE), total = nx * ny;
+  let done = 0;
+  for (let ty = 0; ty < ny; ty++) for (let tx = 0; tx < nx; tx++) {
+    if (gen !== runGen) throw new Error("cancelled");
+    const x0 = tx * TILE, y0 = ty * TILE, x1 = Math.min(w, x0 + TILE), y1 = Math.min(h, y0 + TILE);
+    const px0 = Math.max(0, x0 - PAD), py0 = Math.max(0, y0 - PAD);
+    const tw = Math.min(w, x1 + PAD) - px0, th = Math.min(h, y1 + PAD) - py0;
+    const arr = new Float32Array(tw * th * 3);
+    for (let y = 0; y < th; y++) {
+      let s = ((py0 + y) * w + px0) * 4, d = y * tw * 3;
+      for (let x = 0; x < tw; x++, s += 4, d += 3) { arr[d] = data[s] / 255; arr[d + 1] = data[s + 1] / 255; arr[d + 2] = data[s + 2] / 255; }
+    }
+    const res = runGraph(tf.tensor4d(arr, [1, th, tw, 3]));
+    const vals = await res.data();
+    res.dispose();
+    const ox = (x0 - px0) * S, oy = (y0 - py0) * S, cw = (x1 - x0) * S, ch = (y1 - y0) * S, rw = tw * S;
+    for (let y = 0; y < ch; y++) {
+      let s = ((oy + y) * rw + ox) * 3, d = ((y0 * S + y) * W + x0 * S) * 4;
+      for (let x = 0; x < cw; x++, s += 3, d += 4) { out[d] = vals[s] * 255; out[d + 1] = vals[s + 1] * 255; out[d + 2] = vals[s + 2] * 255; out[d + 3] = 255; }
+    }
+    onProgress(++done / total);
+  }
+  return { data: out, w: W, h: H };
+}
+
+async function runAI(gen, t, stage) {
+  await loadAI(stage);
+  const T = Math.max(t.dw, t.dh);
+  const src = { data: srcData.data, w: srcData.width, h: srcData.height };
+  // Feed the AI a quarter of the target size: much faster, and shrinking first also clears compression smear.
+  const k = Math.min(1, T / 4 / Math.max(t.crop.w, t.crop.h));
+  let cur = await resizeRGBA(src, Math.max(1, Math.round(t.crop.w * k)), Math.max(1, Math.round(t.crop.h * k)), t.crop);
+  for (let pass = 1; pass <= 2; pass++) {
+    if (gen !== runGen) throw new Error("cancelled");
+    const lc = Math.max(cur.w, cur.h);
+    if (lc * 4 > T * 1.02) { const k2 = T / 4 / lc; cur = await resizeRGBA(cur, Math.max(1, Math.round(cur.w * k2)), Math.max(1, Math.round(cur.h * k2))); }
+    cur = await aiUpscale(cur, gen, (p) => stage("AI upscaling" + (pass > 1 ? ", pass 2" : "") + "… " + Math.round(p * 100) + "%"));
+    if (Math.max(cur.w, cur.h) >= T * 0.75) break; // very small sources get a second pass
+  }
+  stage("Finishing…");
+  const fin = cur.w === t.dw && cur.h === t.dh ? cur : await resizeRGBA(cur, t.dw, t.dh);
+  if (srcHasAlpha) {
+    const a = await resizeRGBA(src, t.dw, t.dh, t.crop);
+    for (let i = 3; i < fin.data.length; i += 4) fin.data[i] = a.data[i];
+  }
+  return fin;
+}
+
+async function runClassic(gen, t, stage) {
+  const m = await workerJob({
+    src: srcData.data, sw: srcData.width, sh: srcData.height, crop: t.crop, dw: t.dw, dh: t.dh,
+    denoise: settings.denoise / 100, sharpen: settings.sharpen / 100, detail: (settings.detail / 100) * 0.5,
+  }, stage);
+  return { data: new Uint8ClampedArray(m.buf), w: m.dw, h: m.dh };
+}
+
+/* ---------------- SVG: layered vector tracing (pure paths, no embedded bitmap) ---------------- */
+const VTRACER = "https://cdn.jsdelivr.net/npm/vtracer-wasm@0.1.0/vtracer.js";
+// Each style: trace size (long side), edge-preserving smoothing before tracing, colours, speck size, shading blur.
+const SVG_STYLES = {
+  smooth: { max: 2000, passes: 1, strength: 0.35, colors: 64, speckle: 6, blur: 7,
+    note: "Closest to the image: up to 64 colour layers with softly blended shading. Uses SVG blur filters, which a few design apps flatten." },
+  detailed: { max: 2000, passes: 1, strength: 0.35, colors: 32, speckle: 12, blur: 0,
+    note: "Sharp shapes only, no filters. Best for editing in Illustrator, Figma or cutting machines." },
+  flat: { max: 1200, passes: 3, strength: 1, colors: 8, speckle: 40, blur: 0,
+    note: "Smooths the image first, then uses a few solid colours for a clean illustration or sticker look." },
+};
+let traceGen = 0, runActive = false;
+const svgState = { key: "", readyKey: "", svg: "", img: null, url: "", promise: null };
+
+/* ---------------- Render memory: anything already rendered is reused, never redone ---------------- */
+const RESULT_BUDGET = 400e6; // bytes of upscaled pixels kept (about ten 4K images)
+const SVG_CACHE_MAX = 24;
+const resultCache = new Map(); // key → { data, w, h, crop, ai }
+const svgCache = new Map();    // key → { svg, img, url, shapes, bytes }
+let sourceKey = "";
+function cacheGet(map, key) {
+  const v = map.get(key);
+  if (v) { map.delete(key); map.set(key, v); } // most recently used goes last
+  return v;
+}
+function cachePutResult(key, v) {
+  resultCache.delete(key); resultCache.set(key, v);
+  let total = 0;
+  for (const r of resultCache.values()) total += r.data.length;
+  for (const [k, r] of resultCache) {
+    if (total <= RESULT_BUDGET || resultCache.size <= 1) break;
+    resultCache.delete(k); total -= r.data.length;
+  }
+}
+function cachePutSvg(key, v) {
+  svgCache.delete(key); svgCache.set(key, v);
+  for (const [k, s] of svgCache) {
+    if (svgCache.size <= SVG_CACHE_MAX) break;
+    if (k === svgState.readyKey) continue; // never drop the one on screen
+    svgCache.delete(k); URL.revokeObjectURL(s.url);
+  }
+}
+function resultKeyFor(t, engine) {
+  const c = t.crop;
+  return [sourceKey, engine, t.dw + "x" + t.dh, [c.x, c.y, c.w, c.h].map((n) => n.toFixed(1)).join(","),
+    engine === "classic" ? [settings.denoise, settings.sharpen, settings.detail].join(",") : ""].join("|");
+}
+function svgSummary(s) { return fmt(s.shapes) + " vector shapes, " + (s.bytes / 1048576).toFixed(1) + " MB"; }
+// Layered vectorizer: posterize into K colours, stack the colour layers (no gaps), trace each layer
+// with VTracer's spline tracer, and soften low-contrast shading layers with an SVG blur filter.
+// Pure vector output: <path>, <g> and <filter> only.
+//   px: RGBA Uint8Array/Uint8ClampedArray, w × h · toSvg: vtracer-wasm's to_svg
+//   o: { colors, speckle, blur (0 = off, else stdDeviation in traced px), outW, outH }
+function layeredSvg(px, w, h, o, toSvg, onProgress) {
+  const n = w * h, K = Math.max(2, Math.min(64, o.colors | 0));
+  const dist2 = (r1, g1, b1, r2, g2, b2) => { const dr = r1 - r2, dg = g1 - g2, db = b1 - b2; return 2 * dr * dr + 4 * dg * dg + 3 * db * db; };
+  const opaque = (i) => px[i * 4 + 3] >= 128;
+
+  // 1. Palette: k-means on a sample, seeded by farthest-point picks (deterministic).
+  const step = Math.max(1, Math.floor(n / 80000));
+  const sample = [];
+  for (let i = 0; i < n; i += step) if (opaque(i)) sample.push(i);
+  if (!sample.length) return '<svg xmlns="http://www.w3.org/2000/svg" width="' + o.outW + '" height="' + o.outH + '"/>';
+  const cr = new Float64Array(K), cg = new Float64Array(K), cb = new Float64Array(K);
+  { let sr = 0, sg = 0, sb = 0; for (const i of sample) { sr += px[i * 4]; sg += px[i * 4 + 1]; sb += px[i * 4 + 2]; }
+    cr[0] = sr / sample.length; cg[0] = sg / sample.length; cb[0] = sb / sample.length; }
+  const best = new Float64Array(sample.length).fill(Infinity);
+  for (let k = 1; k < K; k++) {
+    let far = 0, farD = -1;
+    for (let s = 0; s < sample.length; s++) {
+      const i = sample[s] * 4;
+      const d = dist2(px[i], px[i + 1], px[i + 2], cr[k - 1], cg[k - 1], cb[k - 1]);
+      if (d < best[s]) best[s] = d;
+      if (best[s] > farD) { farD = best[s]; far = s; }
+    }
+    const i = sample[far] * 4; cr[k] = px[i]; cg[k] = px[i + 1]; cb[k] = px[i + 2];
+  }
+  const nearest = (r, g, b) => { let bk = 0, bd = Infinity; for (let k = 0; k < K; k++) { const d = dist2(r, g, b, cr[k], cg[k], cb[k]); if (d < bd) { bd = d; bk = k; } } return bk; };
+  for (let it = 0; it < 12; it++) {
+    const sr = new Float64Array(K), sg = new Float64Array(K), sb = new Float64Array(K), c = new Float64Array(K);
+    for (const s of sample) { const i = s * 4, k = nearest(px[i], px[i + 1], px[i + 2]); sr[k] += px[i]; sg[k] += px[i + 1]; sb[k] += px[i + 2]; c[k]++; }
+    for (let k = 0; k < K; k++) if (c[k]) { cr[k] = sr[k] / c[k]; cg[k] = sg[k] / c[k]; cb[k] = sb[k] / c[k]; }
+  }
+  if (onProgress) onProgress(0.1);
+
+  // 2. Label every pixel (255 = transparent), then a 3×3 majority pass to remove speckle.
+  let lab = new Uint8Array(n);
+  for (let i = 0; i < n; i++) lab[i] = opaque(i) ? nearest(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]) : 255;
+  { const out = new Uint8Array(n), cnt = new Uint16Array(256);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const seen = [];
+      for (let dy = -1; dy <= 1; dy++) { const yy = Math.min(h - 1, Math.max(0, y + dy));
+        for (let dx = -1; dx <= 1; dx++) { const l = lab[yy * w + Math.min(w - 1, Math.max(0, x + dx))]; if (!cnt[l]++) seen.push(l); } }
+      let bl = lab[y * w + x], bc = cnt[bl];
+      for (const l of seen) { if (cnt[l] > bc) { bc = cnt[l]; bl = l; } }
+      out[y * w + x] = bl;
+      for (const l of seen) cnt[l] = 0;
+    }
+    lab = out; }
+
+  // 3. Stack order: biggest colour area at the bottom. rank[label] = position in the stack.
+  const count = new Float64Array(K);
+  for (let i = 0; i < n; i++) if (lab[i] !== 255) count[lab[i]]++;
+  const order = [...Array(K).keys()].filter((k) => count[k] > 0).sort((a, b) => count[b] - count[a]);
+  const rank = new Int16Array(256).fill(-1);
+  order.forEach((k, r) => (rank[k] = r));
+  const L = order.length;
+
+  // 4. Shading groups: colours that meet each other along gentle, similar-colour borders (all the skin
+  //    tones, all the shirt yellows) are joined with union-find.
+  const LOW = 30 * 30 * 9; // squared weighted RGB distance counted as a "shading step"
+  const adj = new Float64Array(K * K);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p = y * w + x, a = lab[p];
+    if (a === 255) continue;
+    if (x + 1 < w) { const b = lab[p + 1]; if (b !== a && b !== 255) { adj[a * K + b]++; adj[b * K + a]++; } }
+    if (y + 1 < h) { const b = lab[p + w]; if (b !== a && b !== 255) { adj[a * K + b]++; adj[b * K + a]++; } }
+  }
+  const parent = [...Array(K).keys()];
+  const find = (a) => (parent[a] === a ? a : (parent[a] = find(parent[a])));
+  const minAdj = Math.max(20, (w + h) / 50);
+  // Complete linkage: two groups join only if every colour in one is close to every colour in the other,
+  // so gradual chains (skin → brown → beard → hair) never collapse into one group.
+  const members = new Map([...Array(K).keys()].map((k) => [k, [k]]));
+  const pairs = [];
+  for (let a = 0; a < K; a++) for (let b = a + 1; b < K; b++) {
+    if (!count[a] || !count[b] || adj[a * K + b] < minAdj) continue;
+    const d = dist2(cr[a], cg[a], cb[a], cr[b], cg[b], cb[b]);
+    if (d < LOW) pairs.push([d, a, b]);
+  }
+  pairs.sort((x, y) => x[0] - y[0]);
+  for (const [, a, b] of pairs) {
+    const ga = find(a), gb = find(b);
+    if (ga === gb) continue;
+    const A = members.get(ga), B = members.get(gb);
+    if (A.every((i) => B.every((j) => dist2(cr[i], cg[i], cb[i], cr[j], cg[j], cb[j]) < LOW))) {
+      parent[ga] = gb; members.set(gb, B.concat(A)); members.delete(ga);
+    }
+  }
+  const groups = new Map();
+  for (const k of order) { const g = find(k); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(k); }
+
+  // 5. Tracing. Base: every colour stacked (this colour plus every colour above it), sharp, gap-free.
+  //    Then each shading group is redrawn on top with blurred transitions, clipped to the group's exact
+  //    outline, so shading melts while real edges (eyes, brows, outline, background) stay sharp.
+  const hex = (k) => "#" + [cr[k], cg[k], cb[k]].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+  const mask = new Uint8Array(n * 4);
+  const cfg = { binary: true, mode: "spline", hierarchical: "stacked", cornerThreshold: 1.047, lengthThreshold: 4,
+    maxIterations: 10, spliceThreshold: 0.785, filterSpeckle: o.speckle, colorPrecision: 2, layerDifference: 16, pathPrecision: 1 };
+  const trace = (test) => {
+    let inside = 0;
+    for (let i = 0; i < n; i++) {
+      const on = test(lab[i]);
+      const v = on ? 0 : 255;
+      mask[i * 4] = mask[i * 4 + 1] = mask[i * 4 + 2] = v; mask[i * 4 + 3] = 255;
+      inside += on;
+    }
+    if (!inside) return [];
+    if (inside === n) return ['<path d="M0 0H' + w + "V" + h + 'H0Z"/>'];
+    return toSvg(mask, w, h, cfg).match(/<path[^>]*\/>/g) || [];
+  };
+  const fill = (paths, k) => paths.map((p) => p.replace(/ fill="[^"]*"/, "").replace("<path", '<path fill="' + hex(k) + '"')).join("");
+  const softGroups = o.blur > 0 ? [...groups.values()].filter((m) => m.length > 1) : [];
+  const total = L + softGroups.reduce((s, m) => s + m.length + 1, 0);
+  let done = 0;
+  const tick = () => { if (onProgress) onProgress(0.1 + 0.9 * ++done / total); };
+
+  const base = [];
+  for (let r = 0; r < L; r++) {
+    base.push(fill(trace((l) => l !== 255 && rank[l] >= r), order[r]));
+    tick();
+  }
+  const clips = [], overlays = [];
+  softGroups.forEach((members, gi) => {
+    const inGroup = new Uint8Array(256);
+    for (const m of members) inGroup[m] = 1;
+    const clip = trace((l) => inGroup[l] === 1);
+    tick();
+    clips.push('<clipPath id="g' + gi + '">' + clip.map((p) => p.replace(/ fill="[^"]*"/, "")).join("") + "</clipPath>");
+    const body = members.map((m) => { const s = fill(trace((l) => inGroup[l] === 1 && rank[l] >= rank[m]), m); tick(); return s; }).join("");
+    overlays.push('<g clip-path="url(#g' + gi + ')"><g filter="url(#soft)">' + body + "</g></g>");
+  });
+
+  const defs = softGroups.length
+    ? '<defs><filter id="soft" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="' + o.blur + '"/></filter>' + clips.join("") + "</defs>"
+    : "";
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + o.outW + '" height="' + o.outH + '" viewBox="0 0 ' + w + " " + h +
+    '" preserveAspectRatio="none">' + defs + base.join("") + overlays.join("") + "</svg>";
+}
+
+let vtWorker, vtSeq = 0, vtWasm = null;
+const vtWaiters = new Map();
+function vtWasmBytes() {
+  if (!vtWasm) vtWasm = fetch("vendor/vtracer.wasm").then((r) => { if (!r.ok) throw new Error("the SVG engine file is missing"); return r.arrayBuffer(); });
+  return vtWasm;
+}
+function getVtWorker() {
+  if (vtWorker !== undefined) return vtWorker;
+  try {
+    const src = 'import init, { to_svg } from "' + VTRACER + '";\n' + layeredSvg.toString() +
+      '\nlet ready = null;\nself.onmessage = async (e) => { const m = e.data; try { if (!ready) ready = init({ module_or_path: m.wasm }); await ready;' +
+      ' const svg = layeredSvg(m.px, m.w, m.h, m.opts, to_svg, (p) => self.postMessage({ id: m.id, progress: p }));' +
+      ' self.postMessage({ id: m.id, svg }); } catch (err) { self.postMessage({ id: m.id, error: String((err && err.message) || err) }); } };';
+    vtWorker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })), { type: "module" });
+    vtWorker.onmessage = (e) => {
+      const m = e.data, w = vtWaiters.get(m.id);
+      if (!w) return;
+      if (m.progress != null) { if (w.onProgress) w.onProgress(m.progress); return; }
+      vtWaiters.delete(m.id);
+      if (m.error) w.reject(new Error(m.error)); else w.resolve(m.svg);
+    };
+    vtWorker.onerror = (e) => {
+      if (e.preventDefault) e.preventDefault();
+      vtWorker = null;
+      for (const w of vtWaiters.values()) w.reject(new Error("worker-failed"));
+      vtWaiters.clear();
+    };
+  } catch (_) { vtWorker = null; }
+  return vtWorker;
+}
+async function vectorize(px, w, h, opts, onProgress) {
+  const wasm = await vtWasmBytes();
+  const vw = getVtWorker();
+  if (vw) {
+    try {
+      return await new Promise((resolve, reject) => {
+        const id = ++vtSeq;
+        vtWaiters.set(id, { resolve, reject, onProgress });
+        vw.postMessage({ id, px, w, h, opts, wasm: wasm.slice(0) });
+      });
+    } catch (err) { if (err.message !== "worker-failed") throw err; }
+  }
+  // Fallback: run on the page itself.
+  const mod = await import(VTRACER);
+  if (!vectorize.ready) vectorize.ready = mod.default({ module_or_path: wasm.slice(0) });
+  await vectorize.ready;
+  return layeredSvg(px, w, h, opts, mod.to_svg, onProgress);
+}
+
+// The on-screen preview of an SVG is painted once into a canvas, so panning and zooming stay fast.
+const svgPreview = document.createElement("canvas");
+svgPreview.key = "";
+function paintSvgPreview(entry, key, dims) {
+  svgPreview.width = dims.dw; svgPreview.height = dims.dh;
+  const x = svgPreview.getContext("2d");
+  x.clearRect(0, 0, dims.dw, dims.dh);
+  x.drawImage(entry.img, 0, 0, dims.dw, dims.dh);
+  svgPreview.key = key;
+}
+
+function svgKey() { return out ? out.key + "|" + settings.svgStyle + "|" + settings.colors : ""; }
+function ensureSVG() {
+  if (!out) return Promise.resolve(null);
+  const key = svgKey();
+  if (svgState.key === key && svgState.promise) return svgState.promise;
+  const hit = cacheGet(svgCache, key);
+  if (hit) {
+    traceGen++;
+    if (svgPreview.key !== key) paintSvgPreview(hit, key, { dw: out.dw, dh: out.dh });
+    Object.assign(svgState, { key, readyKey: key, svg: hit.svg, img: hit.img, url: hit.url, promise: Promise.resolve(hit.svg) });
+    if (!runActive) { busy(false); setStatus("SVG ready from memory: " + svgSummary(hit) + "."); }
+    draw();
+    return svgState.promise;
+  }
+  const gen = ++traceGen;
+  const dims = { dw: out.dw, dh: out.dh };
+  svgState.key = key;
+  svgState.promise = (async () => {
+    const label = (s) => { if (!runActive && gen === traceGen) busy(true, s); };
+    label("Preparing SVG…");
+    const st = SVG_STYLES[settings.svgStyle] || SVG_STYLES.smooth;
+    const k = Math.min(1, st.max / Math.max(dims.dw, dims.dh));
+    const w = Math.max(1, Math.round(dims.dw * k)), h = Math.max(1, Math.round(dims.dh * k));
+    const full = resultCanvas.getContext("2d").getImageData(0, 0, dims.dw, dims.dh);
+    let pix = await resizeRGBA({ data: full.data, w: dims.dw, h: dims.dh }, w, h);
+    // Edge-preserving smoothing: removes noise and soft gradients that would otherwise become slivers.
+    for (let i = 0; i < st.passes; i++) {
+      if (gen !== traceGen) return null;
+      const m = await workerJob({ src: pix.data, sw: w, sh: h, crop: { x: 0, y: 0, w, h }, dw: w, dh: h, denoise: st.strength });
+      pix = { data: new Uint8ClampedArray(m.buf), w, h };
+    }
+    if (gen !== traceGen) return null;
+    label("Tracing SVG…");
+    const svg = await vectorize(pix.data, w, h,
+      { colors: settings.colors, speckle: st.speckle, blur: st.blur * Math.max(w, h) / 2000, outW: dims.dw, outH: dims.dh },
+      (p) => label("Tracing SVG… " + Math.round(p * 100) + "%"));
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error("the SVG couldn't be displayed")); img.src = url; });
+    const entry = { svg, img, url, shapes: (svg.match(/<path/g) || []).length, bytes: blob.size };
+    cachePutSvg(key, entry); // kept even if the viewer has moved on, so going back is instant
+    if (gen !== traceGen) return null;
+    label("Drawing preview…");
+    paintSvgPreview(entry, key, dims);
+    Object.assign(svgState, { svg, img, url, readyKey: key });
+    if (!runActive) { busy(false); setStatus("SVG ready: " + svgSummary(entry) + "."); }
+    draw();
+    return svg;
+  })();
+  svgState.promise.catch((err) => {
+    if (gen !== traceGen) return;
+    svgState.key = "";
+    if (!runActive) busy(false);
+    setStatus("Couldn't make the SVG: " + err.message + ".");
+  });
+  return svgState.promise;
+}
+
+function showResult(r, key) {
+  resultCanvas.width = r.w; resultCanvas.height = r.h;
+  resultCanvas.getContext("2d").putImageData(new ImageData(r.data, r.w, r.h), 0, 0);
+  out = { dw: r.w, dh: r.h, crop: r.crop, ai: r.ai, key };
+  busy(false);
+  $("download").disabled = false;
+  layoutStage();
+  updateReadout();
+}
+
+let runGen = 0;
+async function run() {
+  if (!srcData) return;
+  const t = targetFor(srcData.width, srcData.height, settings.size);
+  let useAI = settings.engine === "ai" && !AI.failed;
+  const hit = cacheGet(resultCache, resultKeyFor(t, useAI ? "ai" : "classic"));
+  if (hit) {
+    ++runGen; // stops any render still running for other settings
+    runActive = false;
+    showResult(hit, resultKeyFor(t, useAI ? "ai" : "classic"));
+    setStatus("Already rendered. Loaded from memory.");
+    if (settings.format === "svg") ensureSVG();
+    return;
+  }
+  runActive = true;
+  const gen = ++runGen;
+  const stage = (s) => { if (gen === runGen) $("busyText").textContent = s; };
+  busy(true, useAI ? "Starting AI…" : "Upscaling…");
+  $("download").disabled = true;
+  const t0 = performance.now();
+  let note = "";
+  try {
+    let res;
+    if (useAI) {
+      try { res = await runAI(gen, t, stage); }
+      catch (err) {
+        if (gen !== runGen || err.message === "cancelled") return;
+        console.warn(err);
+        AI.failed = true; AI.reason = AI.reason || err.message;
+        syncEngine();
+        note = "The AI engine couldn't run here (" + AI.reason + "), so this used Classic. ";
+        useAI = false;
+        res = await runClassic(gen, t, stage);
+      }
+    } else res = await runClassic(gen, t, stage);
+    const key = resultKeyFor(t, useAI ? "ai" : "classic");
+    const entry = { data: res.data, w: res.w, h: res.h, crop: t.crop, ai: useAI };
+    cachePutResult(key, entry);
+    if (gen !== runGen) return;
+    runActive = false;
+    showResult(entry, key);
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    setStatus(note + (useAI ? "AI upscale done in " + secs + " s." : "Done in " + secs + " s."));
+    if (settings.format === "svg") ensureSVG();
+  } catch (err) {
+    if (gen !== runGen || err.message === "cancelled") return;
+    console.error(err);
+    runActive = false;
+    busy(false);
+    setStatus("Couldn't process this image: " + err.message + ". Try a smaller output size.");
+  }
+}
+
+/* ---------------- Source loading ---------------- */
+function setSource(drawable, w, h, name, sample, key) {
+  sourceKey = key || name + "|" + w + "x" + h;
+  const k = Math.min(1, MAX_SRC / Math.max(w, h));
+  srcCanvas.width = Math.max(1, Math.round(w * k));
+  srcCanvas.height = Math.max(1, Math.round(h * k));
+  const ctx = srcCanvas.getContext("2d", { willReadFrequently: true });
+  ctx.clearRect(0, 0, srcCanvas.width, srcCanvas.height);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(drawable, 0, 0, srcCanvas.width, srcCanvas.height);
+  srcData = ctx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+  srcHasAlpha = false;
+  for (let i = 3; i < srcData.data.length; i += 4) if (srcData.data[i] < 255) { srcHasAlpha = true; break; }
+  srcName = name; isSample = sample;
+  out = null;
+  zoom = "fit"; syncZoomButtons();
+  // thumbnail
+  const th = $("thumb"), tctx = th.getContext("2d");
+  tctx.clearRect(0, 0, th.width, th.height);
+  const s = Math.max(th.width / srcCanvas.width, th.height / srcCanvas.height);
+  tctx.drawImage(srcCanvas, (th.width - srcCanvas.width * s) / 2, (th.height - srcCanvas.height * s) / 2, srcCanvas.width * s, srcCanvas.height * s);
+  const fn = $("fileName");
+  fn.textContent = sample ? "Harbor Ridge" : name;
+  fn.title = fn.textContent;
+  if (sample) { const b = document.createElement("span"); b.className = "badge"; b.textContent = "Sample"; fn.appendChild(b); }
+  $("fileDims").textContent = srcCanvas.width + " × " + srcCanvas.height + (k < 1 ? " (reduced from " + w + " × " + h + ")" : "");
+  updateSizeLabels();
+  layoutStage();
+  run();
+}
+
+function loadFile(file) {
+  if (!file) return;
+  if (file.type && !file.type.startsWith("image/")) { setStatus("“" + file.name + "” isn't an image. Choose a PNG, JPG or WebP file."); return; }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    setSource(img, img.naturalWidth, img.naturalHeight, (file.name || "image").replace(/\.[^.]+$/, ""), false,
+      [file.name, file.size, file.lastModified, img.naturalWidth + "x" + img.naturalHeight].join("|"));
+    URL.revokeObjectURL(url);
+    const r = $("workspace").getBoundingClientRect();
+    if (r.top > window.innerHeight * 0.5 || r.bottom < 0) $("workspace").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    setStatus("This browser can't open “" + (file.name || "that file") + "”. HEIC photos need converting to JPG first.");
+  };
+  img.src = url;
+}
+
+function drawSample() {
+  const c = document.createElement("canvas");
+  c.width = 640; c.height = 360;
+  const g = c.getContext("2d");
+  const sky = g.createLinearGradient(0, 0, 0, 250);
+  sky.addColorStop(0, "#1c3a59"); sky.addColorStop(0.6, "#d9806a"); sky.addColorStop(1, "#f5c48e");
+  g.fillStyle = sky; g.fillRect(0, 0, 640, 360);
+  g.fillStyle = "#fff3d4"; g.beginPath(); g.arc(470, 190, 40, 0, Math.PI * 2); g.fill();
+  const ridge = (base, amp, f, seed, color) => {
+    g.fillStyle = color; g.beginPath(); g.moveTo(0, 360);
+    for (let x = 0; x <= 640; x += 4) {
+      const y = base - amp * (Math.sin(x * f + seed) * 0.6 + Math.sin(x * f * 2.7 + seed * 2) * 0.3 + Math.sin(x * f * 7.1 + seed) * 0.1);
+      g.lineTo(x, y);
+    }
+    g.lineTo(640, 360); g.closePath(); g.fill();
+  };
+  ridge(205, 38, 0.011, 1.3, "#7d5c74");
+  ridge(232, 30, 0.017, 4.1, "#4b3f5c");
+  ridge(258, 18, 0.023, 2.2, "#2b2d40");
+  const sea = g.createLinearGradient(0, 255, 0, 360);
+  sea.addColorStop(0, "#e7a07a"); sea.addColorStop(1, "#253a52");
+  g.fillStyle = sea; g.fillRect(0, 262, 640, 98);
+  g.strokeStyle = "rgba(255,240,210,.55)"; g.lineWidth = 1;
+  for (let i = 0; i < 26; i++) { const y = 268 + i * 3.6; g.beginPath(); g.moveTo(440 - i * 3, y); g.lineTo(500 + i * 3, y); g.stroke(); }
+  g.fillStyle = "#151a24"; g.fillRect(40, 300, 230, 6);
+  for (let x = 46; x < 270; x += 12) g.fillRect(x, 306, 3, 54);
+  g.strokeStyle = "#151a24"; g.lineWidth = 1.5;
+  for (const [bx, by] of [[150, 120], [172, 108], [190, 128], [214, 116]]) {
+    g.beginPath(); g.moveTo(bx - 7, by - 3); g.quadraticCurveTo(bx - 3, by - 6, bx, by); g.quadraticCurveTo(bx + 3, by - 6, bx + 7, by - 3); g.stroke();
+  }
+  g.fillStyle = "#ffffff";
+  g.font = "700 46px Georgia, 'Times New Roman', serif";
+  g.fillText("Harbor Ridge", 32, 72);
+  g.font = "500 13px Menlo, Consolas, monospace";
+  g.fillStyle = "rgba(255,255,255,.85)";
+  g.fillText("SAMPLE IMAGE · 640 × 360 PX · DUSK", 34, 98);
+  return c;
+}
+
+/* ---------------- Viewer ---------------- */
+const stage = $("stage"), view = $("view"), vctx = view.getContext("2d");
+let zoom = "fit", panX = 0, panY = 0, split = 0.5;
+const dpr = () => window.devicePixelRatio || 1;
+
+function frameDims() {
+  if (out) return { w: out.dw, h: out.dh };
+  if (srcData) { const t = targetFor(srcData.width, srcData.height, settings.size); return { w: t.dw, h: t.dh }; }
+  return { w: 16, h: 9 };
+}
+function scale() {
+  const f = frameDims();
+  if (zoom === "fit") return Math.min(stage.clientWidth / f.w, stage.clientHeight / f.h);
+  return zoom / dpr();
+}
+function layoutStage() {
+  const f = frameDims();
+  const w = stage.clientWidth;
+  const h = Math.round(Math.max(240, Math.min(w * (f.h / f.w), window.innerHeight * 0.72)));
+  stage.style.height = h + "px";
+  view.width = Math.round(w * dpr()); view.height = Math.round(h * dpr());
+  draw();
+}
+function clampPan() {
+  const f = frameDims(), s = scale();
+  const hw = stage.clientWidth / 2 / s, hh = stage.clientHeight / 2 / s;
+  panX = f.w <= hw * 2 ? f.w / 2 : Math.min(f.w - hw, Math.max(hw, panX));
+  panY = f.h <= hh * 2 ? f.h / 2 : Math.min(f.h - hh, Math.max(hh, panY));
+}
+function draw() {
+  const d = dpr();
+  vctx.setTransform(1, 0, 0, 1, 0, 0);
+  vctx.clearRect(0, 0, view.width, view.height);
+  if (!srcData) return;
+  vctx.setTransform(d, 0, 0, d, 0, 0);
+  const vw = stage.clientWidth, vh = stage.clientHeight, s = scale(), f = frameDims();
+  const iw = f.w * s, ih = f.h * s;
+  let ox, oy;
+  if (zoom === "fit") { ox = (vw - iw) / 2; oy = (vh - ih) / 2; }
+  else { clampPan(); ox = vw / 2 - panX * s; oy = vh / 2 - panY * s; }
+  const crop = out ? out.crop : targetFor(srcData.width, srcData.height, settings.size).crop;
+  const sx = vw * split;
+  vctx.save();
+  vctx.beginPath(); vctx.rect(0, 0, out ? sx : vw, vh); vctx.clip();
+  vctx.imageSmoothingEnabled = true; vctx.imageSmoothingQuality = "low";
+  vctx.drawImage(srcCanvas, crop.x, crop.y, crop.w, crop.h, ox, oy, iw, ih);
+  vctx.restore();
+  if (out) {
+    vctx.save();
+    vctx.beginPath(); vctx.rect(sx, 0, vw - sx, vh); vctx.clip();
+    vctx.imageSmoothingEnabled = true; vctx.imageSmoothingQuality = s < 1 ? "high" : "low";
+    const showSvg = settings.format === "svg" && svgState.readyKey === svgKey() && svgPreview.key === svgState.readyKey;
+    vctx.drawImage(showSvg ? svgPreview : resultCanvas, ox, oy, iw, ih);
+    vctx.restore();
+    $("tagR").textContent = showSvg ? "SVG" : out.ai ? "AI" : "Enhanced";
+  }
+  $("split").hidden = !out;
+  $("split").style.left = split * 100 + "%";
+  $("split").setAttribute("aria-valuenow", Math.round(split * 100));
+  stage.classList.toggle("zoomed", zoom !== "fit");
+}
+
+function setSplit(clientX) {
+  const r = stage.getBoundingClientRect();
+  split = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+  draw();
+}
+let drag = null;
+stage.addEventListener("pointerdown", (e) => {
+  if (!out) return;
+  stage.setPointerCapture(e.pointerId);
+  const onHandle = e.target.closest(".split");
+  if (onHandle || zoom === "fit") { drag = { mode: "split" }; setSplit(e.clientX); }
+  else { drag = { mode: "pan", x: e.clientX, y: e.clientY, px: panX, py: panY }; stage.classList.add("panning"); }
+});
+stage.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (drag.mode === "split") setSplit(e.clientX);
+  else { const s = scale(); panX = drag.px - (e.clientX - drag.x) / s; panY = drag.py - (e.clientY - drag.y) / s; draw(); }
+});
+const endDrag = () => { drag = null; stage.classList.remove("panning"); };
+stage.addEventListener("pointerup", endDrag);
+stage.addEventListener("pointercancel", endDrag);
+stage.addEventListener("dblclick", (e) => {
+  if (!out) return;
+  const r = stage.getBoundingClientRect();
+  if (zoom === "fit") {
+    const s = scale(), f = frameDims();
+    const ox = (r.width - f.w * s) / 2, oy = (r.height - f.h * s) / 2;
+    panX = (e.clientX - r.left - ox) / s; panY = (e.clientY - r.top - oy) / s;
+    setZoom(1, true);
+  } else setZoom("fit");
+});
+$("split").addEventListener("keydown", (e) => {
+  const step = e.shiftKey ? 0.1 : 0.02;
+  if (e.key === "ArrowLeft") split = Math.max(0, split - step);
+  else if (e.key === "ArrowRight") split = Math.min(1, split + step);
+  else if (e.key === "Home") split = 0;
+  else if (e.key === "End") split = 1;
+  else return;
+  e.preventDefault(); draw();
+});
+
+function setZoom(z, keepPan) {
+  if (z !== "fit" && !keepPan) { const f = frameDims(); panX = f.w / 2; panY = f.h / 2; }
+  zoom = z; syncZoomButtons(); draw();
+}
+function syncZoomButtons() {
+  $("zFit").setAttribute("aria-pressed", zoom === "fit");
+  $("z1").setAttribute("aria-pressed", zoom === 1);
+  $("z2").setAttribute("aria-pressed", zoom === 2);
+  $("hint").textContent = zoom === "fit"
+    ? "Drag across the image to compare. Zoom to 100% to judge real 4K detail."
+    : "Drag to pan, or drag the white divider to compare. Double-click to fit.";
+}
+$("zFit").onclick = () => setZoom("fit");
+$("z1").onclick = () => setZoom(1);
+$("z2").onclick = () => setZoom(2);
+let resizeT;
+window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(layoutStage, 60); });
+
+/* ---------------- UI ---------------- */
+function busy(on, text) { $("busy").hidden = !on; if (text) $("busyText").textContent = text; }
+function setStatus(t) { $("status").textContent = t; }
+const fmt = (n) => n.toLocaleString("en-US");
+
+function updateSizeLabels() {
+  if (!srcData) return;
+  document.querySelectorAll("[data-px]").forEach((el) => {
+    const t = targetFor(srcData.width, srcData.height, el.dataset.px);
+    el.textContent = t.dw + "×" + t.dh;
+  });
+  const t = targetFor(srcData.width, srcData.height, settings.size);
+  const note = $("sizeNote");
+  const factor = t.dw / t.crop.w;
+  if (t.capped) { note.hidden = false; note.className = "note warn"; note.textContent = "Capped at " + MAX_OUT + " px on the long side to stay within browser memory."; }
+  else if (factor < 1) { note.hidden = false; note.className = "note warn"; note.textContent = "This image is already bigger than the target, so it will be scaled down."; }
+  else if (factor > 8) { note.hidden = false; note.className = "note warn"; note.textContent = "That's a " + factor.toFixed(1) + "× enlargement. Very small sources will look soft at 4K whatever tool you use."; }
+  else note.hidden = true;
+  const ext = settings.format.toUpperCase();
+  $("download").textContent = "Download " + ext + " · " + t.dw + " × " + t.dh;
+}
+function updateReadout() {
+  if (!srcData) return;
+  const t = targetFor(srcData.width, srcData.height, settings.size);
+  const factor = t.dw / t.crop.w;
+  $("readout").innerHTML = "<strong>" + srcData.width + "×" + srcData.height + "</strong> → <strong>" + t.dw + "×" + t.dh + "</strong> · " +
+    factor.toFixed(factor < 10 ? 2 : 1) + "× · " + (t.dw * t.dh / 1e6).toFixed(1) + " MP";
+}
+
+// Engine
+const engineButtons = document.querySelectorAll("[data-engine]");
+function syncEngine() {
+  if (AI.failed) settings.engine = "classic";
+  engineButtons.forEach((b) => {
+    b.setAttribute("aria-pressed", b.dataset.engine === settings.engine);
+    if (b.dataset.engine === "ai") b.disabled = AI.failed;
+  });
+  const ai = settings.engine === "ai";
+  $("enhanceBlock").hidden = ai;
+  $("engineNote").textContent = AI.failed
+    ? "AI isn't available in this browser (" + AI.reason + "). Try a recent Chrome, Edge or Safari on a computer."
+    : ai
+      ? "Redraws edges and cleans up blur and compression. Runs on your graphics chip in about 5–60 seconds. Downloads a 9 MB model the first time."
+      : "Instant resize with sharpening. Good for images that are already clean.";
+  $("footNote").textContent = ai
+    ? "AI mode uses a free Real-ESRGAN-type model tuned for digital art. Your image never leaves your device."
+    : "Classic uses Lanczos-3 resampling with edge-aware sharpening. It makes enlargements clean and crisp, but can't redraw detail the way AI mode does.";
+}
+engineButtons.forEach((b) => (b.onclick = () => {
+  if (b.disabled || settings.engine === b.dataset.engine) return;
+  settings.engine = b.dataset.engine; persist(); syncEngine(); run();
+}));
+
+// Sizes
+document.querySelectorAll('input[name="size"]').forEach((r) => {
+  r.checked = r.value === settings.size;
+  r.addEventListener("change", () => { settings.size = r.value; persist(); updateSizeLabels(); updateReadout(); out = null; layoutStage(); run(); });
+});
+
+// Sliders
+let sliderT;
+for (const key of ["denoise", "sharpen", "detail"]) {
+  const el = $(key), o = $(key + "Out");
+  el.value = settings[key]; o.textContent = settings[key];
+  el.addEventListener("input", () => {
+    settings[key] = +el.value; o.textContent = el.value; persist();
+    clearTimeout(sliderT); sliderT = setTimeout(run, 280);
+  });
+}
+$("reset").onclick = () => {
+  for (const k in DEFAULTS) { settings[k] = DEFAULTS[k]; $(k).value = DEFAULTS[k]; $(k + "Out").textContent = DEFAULTS[k]; }
+  persist(); run();
+};
+
+// Format
+const fmtButtons = document.querySelectorAll("[data-fmt]");
+function syncFormat() {
+  fmtButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.fmt === settings.format));
+  $("qualityRow").hidden = settings.format !== "jpg" && settings.format !== "webp";
+  $("svgRow").hidden = settings.format !== "svg";
+  updateSizeLabels();
+}
+fmtButtons.forEach((b) => (b.onclick = () => {
+  settings.format = b.dataset.fmt; persist(); syncFormat(); draw();
+  if (settings.format === "svg" && !runActive) ensureSVG();
+}));
+const styleButtons = document.querySelectorAll("[data-svgstyle]");
+function syncSvgStyle() {
+  styleButtons.forEach((b) => b.setAttribute("aria-pressed", b.dataset.svgstyle === settings.svgStyle));
+  $("svgNote").textContent = (SVG_STYLES[settings.svgStyle] || SVG_STYLES.smooth).note;
+  $("colors").value = settings.colors; $("colorsOut").textContent = settings.colors;
+}
+styleButtons.forEach((b) => (b.onclick = () => {
+  if (settings.svgStyle === b.dataset.svgstyle) return;
+  settings.svgStyle = b.dataset.svgstyle;
+  settings.colors = SVG_STYLES[settings.svgStyle].colors;
+  persist(); syncSvgStyle();
+  if (!runActive) ensureSVG();
+}));
+syncSvgStyle();
+let colorsT;
+$("colors").addEventListener("input", () => {
+  settings.colors = +$("colors").value; $("colorsOut").textContent = settings.colors; persist();
+  clearTimeout(colorsT);
+  colorsT = setTimeout(() => { if (!runActive) ensureSVG(); }, 400);
+});
+$("quality").value = settings.quality; $("qualityOut").textContent = settings.quality;
+$("quality").addEventListener("input", () => { settings.quality = +$("quality").value; $("qualityOut").textContent = settings.quality; persist(); });
+
+// File input, drag-drop, paste
+$("pick").onclick = () => $("fileInput").click();
+$("pick2").onclick = () => $("fileInput").click();
+$("fileInput").addEventListener("change", (e) => { loadFile(e.target.files[0]); e.target.value = ""; });
+let dragDepth = 0;
+const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files");
+window.addEventListener("dragenter", (e) => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $("drop").hidden = false; document.body.classList.add("dragging"); });
+window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) { $("drop").hidden = true; document.body.classList.remove("dragging"); } });
+window.addEventListener("drop", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; $("drop").hidden = true; document.body.classList.remove("dragging");
+  loadFile(e.dataTransfer.files[0]);
+});
+window.addEventListener("paste", (e) => {
+  const item = Array.from(e.clipboardData?.items || []).find((i) => i.type.startsWith("image/"));
+  if (item) { const f = item.getAsFile(); if (f) { e.preventDefault(); loadFile(new File([f], "pasted-image.png", { type: f.type })); } }
+});
+
+/* ---------------- Export ---------------- */
+const downloadsP = (window.claude && typeof window.claude.use === "function")
+  ? window.claude.use("downloads").catch(() => null)
+  : Promise.resolve(undefined); // standalone page: a normal download link works
+
+function encode() {
+  return new Promise((resolve) => {
+    const type = { png: "image/png", jpg: "image/jpeg", webp: "image/webp" }[settings.format];
+    let c = resultCanvas;
+    if (settings.format === "jpg") { // JPEG has no transparency: flatten onto white
+      c = document.createElement("canvas"); c.width = resultCanvas.width; c.height = resultCanvas.height;
+      const x = c.getContext("2d"); x.fillStyle = "#ffffff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(resultCanvas, 0, 0);
+    }
+    c.toBlob((b) => resolve(b), type, settings.quality / 100);
+  });
+}
+function showSaveSheet(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const sheet = document.createElement("div");
+  sheet.className = "sheet";
+  sheet.innerHTML = '<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><div class="sheet-head"><h2 id="sheetTitle">Save your image</h2><button class="btn" type="button">Close</button></div><p>Right-click the image and choose <b>Save Image As…</b> On a phone, press and hold it.</p><img alt="Upscaled image"></div>';
+  sheet.querySelector("img").src = url;
+  sheet.querySelector("p").append(" Suggested name: " + filename);
+  const close = () => { sheet.remove(); URL.revokeObjectURL(url); };
+  sheet.querySelector("button").onclick = close;
+  sheet.addEventListener("click", (e) => { if (e.target === sheet) close(); });
+  document.body.appendChild(sheet);
+  sheet.querySelector("button").focus();
+}
+$("download").onclick = async () => {
+  if (!out) return;
+  const btn = $("download");
+  btn.disabled = true;
+  setStatus("Preparing file…");
+  try {
+    let blob;
+    if (settings.format === "svg") {
+      setStatus("Tracing SVG…");
+      const svg = await ensureSVG();
+      if (!svg) throw new Error("svg");
+      blob = new Blob([svg], { type: "image/svg+xml" });
+    } else blob = await encode();
+    if (!blob) throw new Error("encode");
+    const realExt = blob.type === "image/svg+xml" ? "svg" : blob.type === "image/jpeg" ? "jpg" : blob.type === "image/webp" ? "webp" : "png";
+    const filename = srcName + "-" + out.dw + "x" + out.dh + "." + realExt;
+    const sizeTxt = (blob.size / 1048576).toFixed(1) + " MB";
+    const fellBack = realExt !== settings.format ? " (this browser can't make " + settings.format.toUpperCase() + ", so it's a PNG)" : "";
+    const dl = await downloadsP;
+    if (dl === undefined) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      setStatus("Downloaded " + filename + " · " + sizeTxt + fellBack);
+    } else if (dl) {
+      try {
+        await dl.save({ filename, data: blob });
+        setStatus("Saved " + filename + " · " + sizeTxt + fellBack);
+      } catch (err) {
+        const code = err && err.code;
+        if (code === "declined") setStatus("Download cancelled.");
+        else if (code === "rate_limited") setStatus("A save prompt is already open. Finish it, then try again.");
+        else { showSaveSheet(blob, filename); setStatus(""); }
+      }
+    } else {
+      showSaveSheet(blob, filename); setStatus("");
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus("Couldn't create the file. Try PNG or a smaller output size.");
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+/* ---------------- Boot ---------------- */
+syncEngine();
+syncFormat();const sample = drawSample();
+setSource(sample, sample.width, sample.height, "harbor-ridge", true, "sample");
+updateReadout();
+})();
+</script>
