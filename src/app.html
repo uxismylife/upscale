@@ -124,8 +124,9 @@ h1 span { color: var(--accent); }
 .seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 11px; background: var(--surface-2); }
 .seg button { border: 0; background: transparent; color: var(--muted); font: 500 13.5px/1 var(--sans); padding: 8px 12px; border-radius: 8px; cursor: pointer; }
 .seg button:hover { color: var(--ink); }
-.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
-.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 35%, transparent); }
+.seg button:focus { outline: none; }
+.seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .seg button:disabled { opacity: .45; cursor: not-allowed; }
 .seg-wide { display: flex; }
 .seg-wide button { flex: 1; padding: 10px 8px; }
