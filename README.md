@@ -1,11 +1,42 @@
 # 4K Upscaler
 
+**Live demo:** https://upscale.185.158.132.146.sslip.io
+
 A free web app that upscales images to 4K and converts them to SVG. All processing runs in the visitor's browser, so images are never uploaded and the site needs no server.
 
 - **AI engine:** an RRDBNet ×4 model (Real-ESRGAN family, digital-art weights) running on the visitor's GPU with TensorFlow.js (WebGPU, falling back to WebGL).
 - **Classic engine:** Lanczos-3 resampling with denoise, edge sharpening and local contrast, in a Web Worker.
 - **SVG output:** colour-layer vectorizer built on VTracer (WebAssembly): Smooth, Detailed and Flat cartoon styles. Output is pure vector (paths, clip paths, blur filters), with no embedded bitmap.
 - **Render memory:** every upscale and SVG is cached in the tab, so switching settings back and forth never re-renders.
+
+
+![4K Upscaler home page](docs/screenshots/01-home.png)
+
+## Screenshots
+
+**Before and after.** Drag the divider to compare the original with the AI result.
+
+![Before and after comparison at 4K](docs/screenshots/02-before-after.png)
+
+**Real 4K detail.** At 100% zoom the original is blocky; the AI version has clean edges.
+
+![100% zoom: blocky original on the left, crisp AI upscale on the right](docs/screenshots/03-zoom-100.png)
+
+**SVG output.** Pure vector shapes in three styles: Smooth, Detailed and Flat cartoon.
+
+![SVG output in Smooth style](docs/screenshots/04-svg-output.png)
+
+**Dark mode** follows your system setting.
+
+![Dark mode](docs/screenshots/05-dark-mode.png)
+
+**On a phone.**
+
+<p>
+  <img src="docs/screenshots/06-phone-home.png" alt="Home page on a phone" width="280">
+  &nbsp;
+  <img src="docs/screenshots/07-phone-result.png" alt="Result and settings on a phone" width="280">
+</p>
 
 ## Files
 
